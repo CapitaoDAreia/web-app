@@ -7,15 +7,20 @@ import (
 
 type application struct{}
 
+func NewApplication() *application {
+	return &application{}
+}
+
 func main() {
 	// Set up an app config
-	app := application{}
+	app := NewApplication()
 
 	//get app routes
 	mux := app.routes()
 
 	//print out a message
 	log.Println("Server is listening on port 8080")
+
 	// start the server
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatal(err)
