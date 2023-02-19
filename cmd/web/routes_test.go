@@ -9,21 +9,25 @@ import (
 )
 
 func TestAppRoutes(t *testing.T) {
+	//create test table with cases
 	var tests = []struct {
-		route  string
-		method string
+		testName string
+		route    string
+		method   string
 	}{
-		{"/", "GET"},
-		{"/static/*", "GET"},
+		{"success on GET", "/", "GET"},
+		{"success on static", "/static/*", "GET"},
 	}
 
+	// creates an http.Handler
 	var app application
 	mux := app.routes()
 
+	//casting the handler to 'chi.Routes' type
 	chiRoutes := mux.(chi.Routes)
 
 	for _, test := range tests {
-		t.Run(test.route, func(t *testing.T) {
+		t.Run(test.testName, func(t *testing.T) {
 			if !routeExists(test.route, test.method, chiRoutes) {
 				t.Errorf("route %s is note registered", test.route)
 			}
@@ -31,6 +35,7 @@ func TestAppRoutes(t *testing.T) {
 	}
 }
 
+// validatte if route exists based on chi.walk function
 func routeExists(testRoute, testMethod string, chiRoutes chi.Routes) bool {
 	found := false
 
