@@ -12,6 +12,10 @@ func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	_ = app.render(w, r, "home.page.gohtml", &TemplateData{})
 }
 
+func (app *application) Login(w http.ResponseWriter, r *http.Request) {
+	_ = app.render(w, r, "login.page.gohtml", &TemplateData{})
+}
+
 type TemplateData struct {
 	IP   string
 	Data map[string]any
