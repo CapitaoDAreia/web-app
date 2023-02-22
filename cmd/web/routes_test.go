@@ -17,6 +17,7 @@ func TestAppRoutes(t *testing.T) {
 	}{
 		{"success on GET", "/", "GET"},
 		{"success on static", "/static/*", "GET"},
+		{"success on login", "/login", "POST"},
 	}
 
 	// creates an http.Handler
