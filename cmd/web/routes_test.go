@@ -21,7 +21,6 @@ func TestAppRoutes(t *testing.T) {
 	}
 
 	// creates an http.Handler
-	var app application
 	mux := app.routes()
 
 	//casting the handler to 'chi.Routes' type

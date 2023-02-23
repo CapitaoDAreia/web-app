@@ -70,8 +70,6 @@ func TestAppAddIPToContext(t *testing.T) {
 		// },
 	}
 
-	var app application
-
 	// dummy handler
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//make sure that the value exists in the context

@@ -30,7 +30,6 @@ func TestRender(t *testing.T) {
 		},
 	}
 
-	var app application
 	routes := app.routes()
 
 	server := httptest.NewTLSServer(routes)
