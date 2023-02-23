@@ -38,8 +38,6 @@ func TestRender(t *testing.T) {
 	server := httptest.NewTLSServer(routes)
 	defer server.Close()
 
-	pathToTemplates = "./../../templates/"
-
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			// fmt.Println(server.URL)
@@ -84,7 +82,7 @@ func TestAppHome(t *testing.T) {
 			//Create a request
 			req, _ := http.NewRequest("GET", "/", nil)
 
-			req = addContexAndSessionToRequest(req, app)
+			req = addContextAndSessionToRequest(req, app)
 			_ = app.Session.Destroy(req.Context())
 
 			if test.putInSession != "" {
@@ -108,12 +106,26 @@ func TestAppHome(t *testing.T) {
 	}
 }
 
+func TestAppRenderWithBadTemplate(t *testing.T) {
+	//set template path (pathToTemplates) to a location with a bad template
+	pathToTemplates = "./testdata/"
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	req = addContextAndSessionToRequest(req, app)
+	rr := httptest.NewRecorder()
+
+	err := app.render(rr, req, "bad.page.gohtml", &TemplateData{})
+	if err == nil {
+		t.Error("Expected error from bad template, but did not get one.")
+	}
+}
+
 func getCtx(req *http.Request) context.Context {
 	ctx := context.WithValue(req.Context(), contextUserKey, "unknown")
 	return ctx
 }
 
-func addContexAndSessionToRequest(req *http.Request, app application) *http.Request {
+func addContextAndSessionToRequest(req *http.Request, app application) *http.Request {
 	req = req.WithContext(getCtx(req))
 
 	ctx, _ := app.Session.Load(req.Context(), req.Header.Get("X-Session"))
