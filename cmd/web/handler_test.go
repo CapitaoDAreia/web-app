@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"io"
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -56,5 +59,39 @@ func TestRender(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestAppHome(t *testing.T) {
+	//Create a request
+	req, _ := http.NewRequest("GET", "/", nil)
+
+	req = addContexAndSessionToRequest(req, app)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(app.HomeTemplate)
+	handler.ServeHTTP(rr, req)
+
+	//Check status code
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("TestAppHome: expected 200 but got %v", rr.Code)
+	}
+
+	body, _ := io.ReadAll(rr.Body)
+	if !strings.Contains(string(body), `<p>From session:`) {
+		t.Error("Did not find correct piece of text in HTML.")
+	}
+}
+
+func getCtx(req *http.Request) context.Context {
+	ctx := context.WithValue(req.Context(), contextUserKey, "unknown")
+	return ctx
+}
+
+func addContexAndSessionToRequest(req *http.Request, app application) *http.Request {
+	req = req.WithContext(getCtx(req))
+
+	ctx, _ := app.Session.Load(req.Context(), req.Header.Get("X-Session"))
+
+	return req.WithContext(ctx)
 }

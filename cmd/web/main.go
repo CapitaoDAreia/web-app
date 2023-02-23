@@ -19,11 +19,11 @@ func main() {
 	// Set up an app config
 	app := NewApplication()
 
-	//get app routes
-	mux := app.routes()
-
 	//get a session manager
 	app.Session = getSession()
+
+	//get app routes
+	mux := app.routes()
 
 	//print out a message
 	log.Println("Server is listening on port 8080")
