@@ -62,24 +62,49 @@ func TestRender(t *testing.T) {
 }
 
 func TestAppHome(t *testing.T) {
-	//Create a request
-	req, _ := http.NewRequest("GET", "/", nil)
-
-	req = addContexAndSessionToRequest(req, app)
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(app.HomeTemplate)
-	handler.ServeHTTP(rr, req)
-
-	//Check status code
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("TestAppHome: expected 200 but got %v", rr.Code)
+	tests := []struct {
+		name         string
+		putInSession string
+		expectedHTML string
+	}{
+		{
+			name:         "Success on first visit",
+			putInSession: "",
+			expectedHTML: "<p>From session:",
+		},
+		{
+			name:         "Success on second visit",
+			putInSession: "hello, world!",
+			expectedHTML: "<p>From session: hello, world!",
+		},
 	}
 
-	body, _ := io.ReadAll(rr.Body)
-	if !strings.Contains(string(body), `<p>From session:`) {
-		t.Error("Did not find correct piece of text in HTML.")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			//Create a request
+			req, _ := http.NewRequest("GET", "/", nil)
+
+			req = addContexAndSessionToRequest(req, app)
+			_ = app.Session.Destroy(req.Context())
+
+			if test.putInSession != "" {
+				app.Session.Put(req.Context(), "test", test.putInSession)
+			}
+
+			rr := httptest.NewRecorder()
+			handler := http.HandlerFunc(app.HomeTemplate)
+			handler.ServeHTTP(rr, req)
+
+			//Check status code
+			if rr.Code != http.StatusOK {
+				t.Errorf("TestAppHome: expected 200 but got %v", rr.Code)
+			}
+
+			body, _ := io.ReadAll(rr.Body)
+			if !strings.Contains(string(body), test.expectedHTML) {
+				t.Errorf("%s: did not find %s in response body", test.name, test.expectedHTML)
+			}
+		})
 	}
 }
 
