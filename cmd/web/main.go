@@ -3,9 +3,13 @@ package main
 import (
 	"log"
 	"net/http"
+
+	"github.com/alexedwards/scs/v2"
 )
 
-type application struct{}
+type application struct {
+	Session *scs.SessionManager
+}
 
 func NewApplication() *application {
 	return &application{}
@@ -17,6 +21,9 @@ func main() {
 
 	//get app routes
 	mux := app.routes()
+
+	//get a session manager
+	app.Session = getSession()
 
 	//print out a message
 	log.Println("Server is listening on port 8080")
