@@ -1,17 +1,17 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"log"
 	"net/http"
+	"web-app/pkg/db"
 
 	"github.com/alexedwards/scs/v2"
 )
 
 type application struct {
 	DataSourceName string
-	DB             *sql.DB
+	DB             *db.PostgresConn
 	Session        *scs.SessionManager
 }
 
@@ -41,8 +41,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer connection.Close()
 
-	app.DB = connection
+	app.DB = &db.PostgresConn{DB: connection}
 
 	//get a session manager
 	app.Session = getSession()
