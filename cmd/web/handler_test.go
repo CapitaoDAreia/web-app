@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -133,4 +134,77 @@ func addContextAndSessionToRequest(req *http.Request, app application) *http.Req
 	ctx, _ := app.Session.Load(req.Context(), req.Header.Get("X-Session"))
 
 	return req.WithContext(ctx)
+}
+
+func TestAppLogin(t *testing.T) {
+	tests := []struct {
+		name               string
+		postedData         url.Values
+		expectedStatusCode int
+		expectedLocation   string
+	}{
+		{
+			name: "Valid login",
+			postedData: url.Values{
+				"email":    {"admin@example.com"},
+				"password": {"secret"},
+			},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedLocation:   "/user/profile",
+		},
+		{
+			name: "Missing form data",
+			postedData: url.Values{
+				"email":    {""},
+				"password": {""},
+			},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedLocation:   "/",
+		},
+		{
+			name: "User not found",
+			postedData: url.Values{
+				"email":    {"invalid@example.com"},
+				"password": {"invalid"},
+			},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedLocation:   "/",
+		},
+		{
+			name: "Bad credentials",
+			postedData: url.Values{
+				"email":    {"admin@example.com"},
+				"password": {"wrong"},
+			},
+			expectedStatusCode: http.StatusSeeOther,
+			expectedLocation:   "/",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req, _ := http.NewRequest("POST", "/login", strings.NewReader(test.postedData.Encode()))
+			req = addContextAndSessionToRequest(req, app)
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			rr := httptest.NewRecorder()
+
+			handler := http.HandlerFunc(app.Login)
+			handler.ServeHTTP(rr, req)
+
+			if rr.Code != test.expectedStatusCode {
+				t.Errorf("Expected status code %v but got %v", test.expectedStatusCode, rr.Code)
+			}
+
+			actualLoc, err := rr.Result().Location()
+			if err == nil {
+				if actualLoc.String() != test.expectedLocation {
+					t.Errorf("Expected location to be '%v' but got '%v'", test.expectedLocation, actualLoc.String())
+				}
+			} else {
+				t.Errorf("No location header set.")
+			}
+
+		})
+	}
 }
