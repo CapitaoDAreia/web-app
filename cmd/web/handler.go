@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -22,6 +21,10 @@ func (app *application) HomeTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = app.render(w, r, "home.page.gohtml", &TemplateData{Data: templateData})
+}
+
+func (app *application) ProfileTemplate(w http.ResponseWriter, r *http.Request) {
+	_ = app.render(w, r, "profile.page.gohtml", &TemplateData{})
 }
 
 func (app *application) LoginTemplate(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +66,9 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 	form.Required("email", "password")
 
 	if !form.Valid() {
-		fmt.Fprint(w, "failed in validation")
+		app.Session.Put(r.Context(), "error", "Invalid login credentials")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
 	email := r.Form.Get("email")
@@ -71,12 +76,14 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := app.DB.GetUserByEmail(email)
 	if err != nil {
-		log.Println(err)
+		app.Session.Put(r.Context(), "error", "Invalid login credentials")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
+	log.Println(password, user.FirstName)
 
-	log.Println("From database: ", user.FirstName)
+	_ = app.Session.RenewToken(r.Context())
 
-	log.Println(email, password)
-
-	fmt.Fprint(w, email)
+	app.Session.Put(r.Context(), "flash", "Success on login")
+	http.Redirect(w, r, "/user/profile", http.StatusSeeOther)
 }
