@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,21 +17,33 @@ func TestRender(t *testing.T) {
 	// expectedTemplate := bytes.NewReader(template)
 
 	tests := []struct {
-		testName             string
-		URL                  string
-		expectedStatusCode   int
-		expectedResponseBody io.Reader
+		testName                string
+		URL                     string
+		expectedStatusCode      int
+		expectedURL             string
+		expectedFirstStatusCode int
 	}{
 		{
-			testName: "Home",
-			URL:      "/", expectedStatusCode: 200,
-			// expectedResponseBody: expectedTemplate,
+			testName:                "Home",
+			URL:                     "/",
+			expectedStatusCode:      200,
+			expectedURL:             "/",
+			expectedFirstStatusCode: 200,
 		},
 		{
-			testName:           "Home",
-			URL:                "/",
-			expectedStatusCode: 200,
-			// expectedResponseBody: expectedTemplate,
+			testName:                "404",
+			URL:                     "/fish",
+			expectedStatusCode:      404,
+			expectedURL:             "/fish",
+			expectedFirstStatusCode: 404,
+		},
+		{
+			// TODO: fix this issue, test not works well
+			testName:                "profile",
+			URL:                     "/user/profile",
+			expectedStatusCode:      200,
+			expectedURL:             "/user/profile",
+			expectedFirstStatusCode: 200,
 		},
 	}
 
@@ -38,6 +51,17 @@ func TestRender(t *testing.T) {
 
 	server := httptest.NewTLSServer(routes)
 	defer server.Close()
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{
+		Transport: tr,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
@@ -53,8 +77,13 @@ func TestRender(t *testing.T) {
 				t.Errorf("Error, status unexpected! Expected %v, have %v.", test.expectedStatusCode, serverResponse.StatusCode)
 			}
 
-			if serverResponse.Body == nil {
-				t.Errorf("body is nil")
+			if serverResponse.Request.URL.Path != test.expectedURL {
+				t.Errorf("Expected final url to be %v but got %v", test.expectedURL, serverResponse.Request.URL.Path)
+			}
+
+			resp2, _ := client.Get(server.URL + test.URL)
+			if resp2.StatusCode != test.expectedFirstStatusCode {
+				t.Errorf("Expected first returned status code to be %v but got %v", test.expectedFirstStatusCode, resp2.StatusCode)
 			}
 		})
 	}
