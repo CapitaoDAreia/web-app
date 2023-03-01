@@ -15,12 +15,13 @@ import (
 )
 
 var (
-	host     = "localhost"
-	user     = "postgres"
-	password = "postgres"
-	dbName   = "users_test"
-	port     = "5435"
-	dsn      = `host%s port=%s user=%s password=%s dbname=%s sslmode=disable timezone=UTC connect_timeout=5`
+	host       = "localhost"
+	user       = "postgres"
+	password   = "postgres"
+	dbName     = "users_test"
+	port       = "5435"
+	dsn        = `host%s port=%s user=%s password=%s dbname=%s sslmode=disable timezone=UTC connect_timeout=5`
+	authMethod = "trust"
 )
 
 var resource *dockertest.Resource
@@ -40,6 +41,7 @@ func TestMain(m *testing.M) {
 		Repository: "postgres",
 		Tag:        "14.5",
 		Env: []string{
+			"POSTGRES_HOST_AUTH_METHOD=" + authMethod,
 			"POSTGRES_USER=" + user,
 			"POSTGRES_PASSWORD" + password,
 			"POSTGRES_DB=" + dbName,
@@ -60,25 +62,60 @@ func TestMain(m *testing.M) {
 
 	}
 	//start the image and wait until it's ready
+
+	retryDSN := fmt.Sprintf(dsn, host, port, user, password, dbName)
+	fmt.Println(retryDSN)
+
 	if err := pool.Retry(func() error {
 		var err error
-		testDB, err = sql.Open("pgx", fmt.Sprintf(dsn, host, port, user, password, dbName))
+		testDB, err = sql.Open("pgx", retryDSN)
 		if err != nil {
 			log.Println("Error: ", err)
 			return err
 		}
-
 		return testDB.Ping()
 	}); err != nil {
+		fmt.Println(err)
 		_ = pool.Purge(resource)
-		log.Fatal("Could not connect to database.")
+		log.Fatal("Could not connect to database.", err)
 	}
 
 	//populate the database with empty tables
+	err = createTables()
+	if err != nil {
+		log.Fatalf("Error creating tables")
+	}
 
 	//run tests
 	code := m.Run()
 
 	//clean up
+	if err := pool.Purge(resource); err != nil {
+		log.Fatal("Could not purge  resource ", err)
+	}
+
 	os.Exit(code)
+}
+
+func createTables() error {
+	tableSQL, err := os.ReadFile("./testdata/users.sql")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	_, err = testDB.Exec(string(tableSQL))
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func Test_pingDB(t *testing.T) {
+	err := testDB.Ping()
+	if err != nil {
+		t.Error("Can't ping db.")
+	}
 }
