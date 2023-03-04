@@ -174,3 +174,30 @@ func TestPostgresDBRepoAllUsers(t *testing.T) {
 		t.Errorf("AllUsers returned a wrong length after insert | Expected 2, got %d", len(users))
 	}
 }
+
+func TestPostgresDBRepoGetUser(t *testing.T) {
+	user, err := testRepo.GetUser(1)
+	if err != nil {
+		t.Errorf("Error getting user by id: %s", err)
+	}
+
+	if user.Email != "admin@example.com" {
+		t.Errorf("GetUser returned a wrong email | expected admin@example.com but got %s", user.Email)
+	}
+
+	user, err = testRepo.GetUser(3)
+	if err == nil {
+		t.Error("No error reported when getting non existent user by id.")
+	}
+}
+
+func TestPostgresDBRepoGetUserBYEmail(t *testing.T) {
+	user, err := testRepo.GetUserByEmail("igor@example.com")
+	if err != nil {
+		t.Errorf("Error getting user by id: %s", err)
+	}
+
+	if user.ID != 2 {
+		t.Errorf("GetUser returned a wrong id | expected 2 but got %d", user.ID)
+	}
+}
