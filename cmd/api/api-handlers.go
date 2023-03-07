@@ -1,18 +1,51 @@
 package main
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
+type Credentials struct {
+	Username string `json:"email"`
+	Password string `json:"password"`
+}
 
 // authenticate handler does what the name say, authenticate.
 func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
+	var credentials Credentials
+
 	//read a json payload
+	err := app.readJSON(w, r, &credentials)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
 
 	//look up the user by email address
+	user, err := app.DB.GetUserByEmail(credentials.Username)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
 
 	//check password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
 
 	//generate tokens
+	tokenPairs, err := app.generateTokenPair(user)
+	if err != nil {
+		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
+		return
+	}
 
 	//send token to user
+	_ = app.writeJSON(w, 200, tokenPairs)
 }
 
 func (app *application) refresh(w http.ResponseWriter, r *http.Request) {
