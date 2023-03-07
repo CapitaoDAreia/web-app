@@ -2,8 +2,17 @@ package main
 
 import "net/http"
 
+// authenticate handler does what the name say, authenticate.
 func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
+	//read a json payload
 
+	//look up the user by email address
+
+	//check password
+
+	//generate tokens
+
+	//send token to user
 }
 
 func (app *application) refresh(w http.ResponseWriter, r *http.Request) {
