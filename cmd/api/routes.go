@@ -13,7 +13,8 @@ func (app *application) routes() http.Handler {
 	// register middleware
 	mux.Use(middleware.Recoverer)
 	// mux.Use(app.enableCORS)
-	// auth routes - auth handler, refresh
+
+	// authentication routes - auth handler, refresh
 	mux.Post("/auth", app.authenticate)
 	mux.Post("/refresh-token", app.refresh)
 
@@ -22,15 +23,16 @@ func (app *application) routes() http.Handler {
 		var payload = struct {
 			Message string `json:"message"`
 		}{
-			Message: "Hello, world!",
+			Message: "hello, world",
 		}
 
 		_ = app.writeJSON(w, http.StatusOK, payload)
 	})
 
 	// protected routes
-	mux.Route("/users", func(r chi.Router) {
-		//use auth middleware
+	mux.Route("/users", func(mux chi.Router) {
+		// use auth middleware
+
 		mux.Get("/", app.allUsers)
 		mux.Get("/{userID}", app.getUser)
 		mux.Delete("/{userID}", app.deleteUser)

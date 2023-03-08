@@ -12,40 +12,39 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-// authenticate handler does what the name say, authenticate.
 func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
-	var credentials Credentials
+	var creds Credentials
 
-	//read a json payload
-	err := app.readJSON(w, r, &credentials)
+	// read a json payload
+	err := app.readJSON(w, r, &creds)
 	if err != nil {
 		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	//look up the user by email address
-	user, err := app.DB.GetUserByEmail(credentials.Username)
+	// look up the user by email address
+	user, err := app.DB.GetUserByEmail(creds.Username)
 	if err != nil {
 		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	//check password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+	// check password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password))
 	if err != nil {
 		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	//generate tokens
+	// generate tokens
 	tokenPairs, err := app.generateTokenPair(user)
 	if err != nil {
 		app.errorJSON(w, errors.New("unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	//send token to user
-	_ = app.writeJSON(w, 200, tokenPairs)
+	// send token to user
+	_ = app.writeJSON(w, http.StatusOK, tokenPairs)
 }
 
 func (app *application) refresh(w http.ResponseWriter, r *http.Request) {
